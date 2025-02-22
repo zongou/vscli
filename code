@@ -274,8 +274,8 @@ ${BLD}${UND}Usage:${RST} ${BLD}${PROGRAM} patch${RST} [INSTALLATION_ROOT]\n"
 		## https://github.com/microsoft/vscode/commit/9b0b13d9bfe21c3dfd227bfaa8ed5693e309a2e0
 		## -	;this.R.style.position="fixed",this.R.style.top="0",this.R.style.left="0"
 		## +	;this.R.style.zIndex="1",this.R.style.position="fixed",this.R.style.top="0",this.R.style.left="0"
-		sed -E -i 's^(;)(this.R.style.position="fixed",this.R.style.top="0",this.R.style.left="0")^\1this.R.style.zIndex="1",\2^' "${js}"
-		grep -E -o -q ';this.R.style.zIndex="1",this.R.style.position="fixed",this.R.style.top="0",this.R.style.left="0"' "${js}"
+		sed -E -i 's^(;)(this.R.style.position="fixed",this.R.style.top="0",this.R.style.left="0")^\1this.R.style.zIndex="1000",\2^' "${js}"
+		grep -E -o -q ';this.R.style.zIndex="-?[0-9]+",this.R.style.position="fixed",this.R.style.top="0",this.R.style.left="0"' "${js}"
 
 		# keyboard does not show in insiders
 		# "editor.experimentalEditContextEnabled": false
