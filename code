@@ -223,7 +223,7 @@ ${BLD}${UND}Usage:${RST} ${BLD}${PROGRAM} patch${RST} [INSTALLATION_ROOT]\n"
 		sed -E -i "s/(<meta name=\"viewport\" )(content=.+)(>$)/\1content=\"width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, interactive-widget=${viewportInteractiveWidget}\"\3/" "${html}"
 		grep -E -o -q "<meta name=\"viewport\" content=\".+, interactive-widget=${viewportInteractiveWidget}\">$" "${html}"
 
-		commandPanelWidth=.80
+		commandPanelWidth=.76
 		msg "Patching: change command panel width to ${commandPanelWidth}"
 		## -	,t=Math.min(this.j.width*.62,Fje.f);
 		## +	,t=Math.min(this.j.width*.80,Fje.f);
@@ -242,15 +242,25 @@ ${BLD}${UND}Usage:${RST} ${BLD}${PROGRAM} patch${RST} [INSTALLATION_ROOT]\n"
 		sed -E -i "s^(if\\(this\\.[^ ]\\.canRelayout===!1&&!\\([^ ]+&&[^ ]+\\.pointerEvents\\))(\\))^\1\&\&!${isAndroid}\2^" "${js}"
 		grep -E -o -q '\(this\.[^ ]\.canRelayout===!1&&!\([^ ]+&&[^ ]+\.pointerEvents\)&&!.{1,3}\)\{this\.hide\(\)' "${js}"
 
+		## Remain the menu opened by menu button
 		## -	,()=>{this.$&&!(Ol&&Lg.pointerEvents)&&this.$.blur()})),
 		## +	,()=>{this.$&&!(Ol&&Lg.pointerEvents)&&!npt&&this.$.blur()})),
 		sed -E -i "s^(\\{this\\.\\$&&\\!\\(..&&..\\.pointerEvents\\))(&&this\\.\\$\\.blur\\(\\)\\})^\1\&\&!${isAndroid}\2^" "${js}"
 		grep -E -o -q '\(\)=>\{this\..{1,3}!\([^ ]+&&[^ ]+\.pointerEvents\)&&!.{1,3}&&this\..\.blur\(\)' "${js}"
 
+		## Remain context menu position after window resize, together with next step
 		## -	showContextView(e,t,s){let n;t?t===this.c.getContainer(De(t))?n=1:s?n=3:n=2:n=1,this.b.setContainer(t??this.c.activeContainer,n),this.b.show(e);
 		## +	showContextView(e,t,s){let n;npt?this.b.setContainer(this.c.activeContainer,1):(t?t===this.c.getContainer(De(t))?n=1:s?n=3:n=2:n=1,this.b.setContainer(t??this.c.activeContainer,n)),this.b.show(e);
 		sed -E -i "s/(showContextView\\([^ ],[^ ],[^ ]\\)\\{let [^ ];)(.+)(,this.b.show\\([^ ]\\))/\\1${isAndroid}?this.b.setContainer(this.c.activeContainer,1):(\\2)\\3/" "${js}"
 		grep -E -o -q 'showContextView\([^ ],[^ ],[^ ]\)\{let [^ ];.{1,3}\?this\.[^ ].setContainer\(this\.[^ ].activeContainer,1\):\(' "${js}"
+
+		msg "Patching: fix editor submenu cheese"
+		## https://github.com/microsoft/vscode/issues/103170
+		## https://github.com/microsoft/vscode/commit/9b0b13d9bfe21c3dfd227bfaa8ed5693e309a2e0
+		## -	;this.R.style.position="fixed",this.R.style.top="0",this.R.style.left="0"
+		## +	;this.R.style.zIndex="1",this.R.style.position="fixed",this.R.style.top="0",this.R.style.left="0"
+		sed -E -i 's^(;)(this.R.style.position="fixed",this.R.style.top="0",this.R.style.left="0")^\1this.R.style.zIndex="1000",\2^' "${js}"
+		grep -E -o -q ';this.R.style.zIndex="-?[0-9]+",this.R.style.position="fixed",this.R.style.top="0",this.R.style.left="0"' "${js}"
 
 		msg "Patching: change default configuration keyboard.dispatch to 'keyCode' for android"
 		## -	,properties:{"keyboard.dispatch":{scope:1,type:"string",enum:["code","keyCode"],default:"code",
@@ -269,17 +279,9 @@ ${BLD}${UND}Usage:${RST} ${BLD}${PROGRAM} patch${RST} [INSTALLATION_ROOT]\n"
 		sed -E -i "s^(,)(this\\.B\\(this\\.a\\.onDidLayoutChange\\(\\(\\)=>this\\.r\\.hide\\(\\)\\)\\)\\})^\1${isAndroid}||\2^g" "${js}"
 		grep -E -o -q ',.{1,3}\|\|this\.B\(this\.a\.onDidLayoutChange\(\(\)=>this\.r\.hide\(\)\)\)\}' "${js}"
 
-		msg "Patching: fix editor submenu cheese"
-		## https://github.com/microsoft/vscode/issues/103170
-		## https://github.com/microsoft/vscode/commit/9b0b13d9bfe21c3dfd227bfaa8ed5693e309a2e0
-		## -	;this.R.style.position="fixed",this.R.style.top="0",this.R.style.left="0"
-		## +	;this.R.style.zIndex="1",this.R.style.position="fixed",this.R.style.top="0",this.R.style.left="0"
-		sed -E -i 's^(;)(this.R.style.position="fixed",this.R.style.top="0",this.R.style.left="0")^\1this.R.style.zIndex="1000",\2^' "${js}"
-		grep -E -o -q ';this.R.style.zIndex="-?[0-9]+",this.R.style.position="fixed",this.R.style.top="0",this.R.style.left="0"' "${js}"
-
-		# keyboard does not show in insiders
-		# "editor.experimentalEditContextEnabled": false
-		# https://github.com/microsoft/vscode/commit/3ff1dceedf606ee5cc60ffab6c1132b91ce67228
+		## keyboard does not show in insiders
+		## "editor.experimentalEditContextEnabled": false
+		## https://github.com/microsoft/vscode/commit/3ff1dceedf606ee5cc60ffab6c1132b91ce67228
 
 		msg "Creating revert patch"
 		(
