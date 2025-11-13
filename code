@@ -24,20 +24,32 @@ prepare_musl_rootfs() {
 
 	## Prepare musl-c rootfs
 	ALPINE_ARCH=$(uname -m)
+	ALPINE_VERSION=v3.22
+	APKINDEX="${ROOTFS_DIR}/APKINDEX"
 
-	while IFS=, read -r pkg lib dir ver; do
-		if [ ! -e "${lib}" ]; then
-			URL="http://dl-cdn.alpinelinux.org/alpine/v3.22/main/${ALPINE_ARCH}/${pkg}-${ver}.apk"
-			msg "Downloading ${pkg}"
-			download_to_stdout "${URL}" | gzip -d | tar -x -C "${ROOTFS_DIR}" "${dir}" 2>/dev/null
+	while IFS=, read -r PKG LIB; do
+		if [ ! -e "${LIB}" ]; then
+			if ! test -f "${APKINDEX}"; then
+				msg "Downloading APKINDEX"
+				download_to_stdout "http://dl-cdn.alpinelinux.org/alpine/${ALPINE_VERSION}/main/${ALPINE_ARCH}/APKINDEX.tar.gz" | gzip -d | tar -C "${ROOTFS_DIR}" -x APKINDEX
+			fi
+			PKG_VERSION=$(grep <"${APKINDEX}" "^P:${PKG}$" -A1 | grep V: | cut -d: -f2)
+			URL="http://dl-cdn.alpinelinux.org/alpine/${ALPINE_VERSION}/main/${ALPINE_ARCH}/${PKG}-${PKG_VERSION}.apk"
+			msg "Downloading ${PKG}"
+			download_to_stdout "${URL}" | gzip -d | tar -x -C "${ROOTFS_DIR}" --exclude=".PKGINFO" --exclude=".SIGN.*" 2>/dev/null
 		fi
 	done <<-EOF
-		musl,${ROOTFS_DIR}/lib/ld-musl-${ALPINE_ARCH}.so.1,lib,1.2.5-r10
-		libgcc,${ROOTFS_DIR}/usr/lib/libgcc_s.so.1,usr,14.2.0-r6
-		libstdc++,${ROOTFS_DIR}/usr/lib/libstdc++.so.6,usr,14.2.0-r6
-		ca-certificates-bundle,${ROOTFS_DIR}/etc/ssl,etc/ssl,20241121-r2
-		zlib,${ROOTFS_DIR}/usr/lib/libz.so.1,usr,1.3.1-r2
+		musl,${ROOTFS_DIR}/lib/ld-musl-${ALPINE_ARCH}.so.1
+		libgcc,${ROOTFS_DIR}/usr/lib/libgcc_s.so.1
+		libstdc++,${ROOTFS_DIR}/usr/lib/libstdc++.so.6
+		ca-certificates-bundle,${ROOTFS_DIR}/etc/ssl
+		zlib,${ROOTFS_DIR}/usr/lib/libz.so.1
 	EOF
+
+	if test -f "${APKINDEX}"; then
+		msg "Remove APKINDEX"
+		rm "${APKINDEX}"
+	fi
 
 	if [ ! -f "${ROOTFS_DIR}/ect/os-release" ]; then
 		cat <<EOF >"${ROOTFS_DIR}/etc/os-release"
@@ -326,14 +338,6 @@ ${BLD}${UND}Usage:${RST} ${BLD}${PROGRAM} patch${RST} [INSTALLATION_ROOT]\n"
 		sed -E -i "s/(showContextView\\([^ ],[^ ],[^ ]\\)\\{let [^ ];)(.+)(,this.b.show\\([^ ]\\))/\\1${isAndroid}?this.b.setContainer(this.c.activeContainer,1):(\\2)\\3/" "${js}"
 		grep -E -o -q 'showContextView\([^ ],[^ ],[^ ]\)\{let [^ ];.{1,3}\?this\.[^ ].setContainer\(this\.[^ ].activeContainer,1\):\(' "${js}"
 
-		msg "Patching: fix editor submenu cheese"
-		## https://github.com/microsoft/vscode/issues/103170
-		## https://github.com/microsoft/vscode/commit/9b0b13d9bfe21c3dfd227bfaa8ed5693e309a2e0
-		## -	;this.R.style.position="fixed",this.R.style.top="0",this.R.style.left="0"
-		## +	;this.R.style.zIndex="1",this.R.style.position="fixed",this.R.style.top="0",this.R.style.left="0"
-		sed -E -i 's^(;)(this.R.style.position="fixed",this.R.style.top="0",this.R.style.left="0")^\1this.R.style.zIndex="1000",\2^' "${js}"
-		grep -E -o -q ';this.R.style.zIndex="-?[0-9]+",this.R.style.position="fixed",this.R.style.top="0",this.R.style.left="0"' "${js}"
-
 		msg "Patching: change default configuration keyboard.dispatch to 'keyCode' for android"
 		## -	,properties:{"keyboard.dispatch":{scope:1,type:"string",enum:["code","keyCode"],default:"code",
 		## +	,properties:{"keyboard.dispatch":{scope:1,type:"string",enum:["code","keyCode"],default:npt?"keyCode":"code",
@@ -341,15 +345,15 @@ ${BLD}${UND}Usage:${RST} ${BLD}${PROGRAM} patch${RST} [INSTALLATION_ROOT]\n"
 		grep -E -o -q ',properties:\{"keyboard\.dispatch":\{scope:1,type:"string",enum:\["code","keyCode"\],default:.{1,3}\?"keyCode":"code",' "${js}"
 
 		msg "Patching: fix actionWidget for android"
-		## -	;c.classList.add("context-view-pointerBlock"),r.add(G(c,ne.POINTER_MOVE,()=>c.remove())),r.add(G(c,ne.MOUSE_DOWN,()=>c.remove()));
-		## +	;c.classList.add("context-view-pointerBlock"),r.add(G(c,ne.POINTER_MOVE,()=>c.remove())),r.add(G(c,ne.MOUSE_DOWN,()=>c.remove())),r.add(G(c,"touchstart",()=>c.remove())),r.add(G(c,"touchmove",()=>c.remove()));
+		## -	;c.classList.add("context-view-pointerBlock"),o.add(K(c,ne.POINTER_MOVE,()=>c.remove())),o.add(K(c,ne.MOUSE_DOWN,()=>c.remove()));
+		## +	;c.classList.add("context-view-pointerBlock"),o.add(K(c,ne.POINTER_MOVE,()=>c.remove())),o.add(K(c,ne.MOUSE_DOWN,()=>c.remove())),o.add(K(c,"touchstart",()=>c.remove())),o.add(K(c,"touchmove",()=>c.remove()));
 		sed -E -i 's^(,.\.add\(\w\(\w,)(..\.MOUSE_DOWN)(,\(\)=>.\.remove\(\)\)\))(;)^\1\2\3\1"touchstart"\3\1"touchmove"\3\4^g' "${js}"
-		grep -E -o -q ',r\.add\([^ ]+\([^ ]+,[^ ]+\.MOUSE_DOWN,\(\)=>[^ ]+\.remove\(\)\)\),[^ ]+\.add\([^ ]+\([^ ]+,"touchstart",\(\)=>[^ ]+\.remove\(\)\)\),[^ ]+\.add\([^ ]+\([^ ]+,"touchmove",\(\)=>[^ ]+\.remove\(\)\)\);' "${js}"
+		grep -E -o -q ',\w\.add\([^ ]+\([^ ]+,[^ ]+\.MOUSE_DOWN,\(\)=>[^ ]+\.remove\(\)\)\),[^ ]+\.add\([^ ]+\([^ ]+,"touchstart",\(\)=>[^ ]+\.remove\(\)\)\),[^ ]+\.add\([^ ]+\([^ ]+,"touchmove",\(\)=>[^ ]+\.remove\(\)\)\);' "${js}"
 
 		## -	,this.B(this.a.onDidLayoutChange(()=>this.r.hide()))}
 		## +	,npt||this.B(this.a.onDidLayoutChange(()=>this.r.hide()))}
-		sed -E -i "s^(,)(this\\.B\\(this\\.a\\.onDidLayoutChange\\(\\(\\)=>this\\.r\\.hide\\(\\)\\)\\)\\})^\1${isAndroid}||\2^g" "${js}"
-		grep -E -o -q ',.{1,3}\|\|this\.B\(this\.a\.onDidLayoutChange\(\(\)=>this\.r\.hide\(\)\)\)\}' "${js}"
+		sed -E -i "s^(,)(this\\.\w\\(this\\.a\\.onDidLayoutChange\\(\\(\\)=>this\\.\w\\.hide\\(\\)\\)\\)\\})^\1${isAndroid}||\2^g" "${js}"
+		grep -E -o -q ',.{1,3}\|\|this\.\w\(this\.a\.onDidLayoutChange\(\(\)=>this\.\w\.hide\(\)\)\)\}' "${js}"
 
 		## keyboard does not show in insiders
 		## "editor.experimentalEditContextEnabled": false
