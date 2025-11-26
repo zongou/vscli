@@ -408,8 +408,8 @@ download_server() {
 	OBJECT=server-alpine-${VSCODE_ARCH}-web
 	VERSION=$(download_to_stdout https://update.code.visualstudio.com/api/releases/stable | sed 's/^\[//' | sed 's/\].*//' | awk -F',' '{print $1}' | tr -d '"')
 	DATA=$(download_to_stdout https://update.code.visualstudio.com/api/versions/${VERSION}/${OBJECT}/stable)
-	COMMIT=$(echo "$DATA" | grep -o '"version":"[^"]*"' | sed 's/"version":"\([^"]*\)"/\1/')
-	URL=$(echo "$DATA" | grep -o '"url":"[^"]*"' | sed 's/"url":"\([^"]*\)"/\1/')
+	COMMIT=$(echo "${DATA}" | grep -o '"version":"[^"]*"' | sed 's/"version":"\([^"]*\)"/\1/')
+	URL=$(echo "${DATA}" | grep -o '"url":"[^"]*"' | sed 's/"url":"\([^"]*\)"/\1/')
 
 	DIST_DIR=${HOME}/.vscode/cli/serve-web/${COMMIT}
 	if test -d "${DIST_DIR}"; then
