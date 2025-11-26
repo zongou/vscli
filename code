@@ -420,7 +420,26 @@ download_server() {
 	mkdir -p "${DIST_DIR}"
 
 	msg "Downloading ${OBJECT} ${VERSION}"
+
+	on_error() {
+		rm -rf "${DIST_DIR}"
+		msg "Exiting due to failure.\n"
+		exit 1
+	}
+
+	on_interrupt() {
+		trap - EXIT
+		rm -rf "${DIST_DIR}"
+		msg "\rExit as requested."
+		exit 1
+	}
+
+	trap "on_error" EXIT
+	trap "on_interrupt" HUP INT TERM
 	curl -Ss $URL | gzip -d | tar -C "${DIST_DIR}" -xv --strip-components=1
+
+	## Reset trap for HUP/INT/TERM.
+	trap - EXIT
 
 	if test -d "${DIST_DIR}.staging"; then
 		rm -rf "${DIST_DIR}.staging"
