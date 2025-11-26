@@ -423,7 +423,7 @@ download_server() {
 
 	on_error() {
 		rm -rf "${DIST_DIR}"
-		msg "Exiting due to failure.\n"
+		msg "Exiting due to failure."
 		exit 1
 	}
 
