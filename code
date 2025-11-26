@@ -411,10 +411,6 @@ download_server() {
 	COMMIT=$(echo "$DATA" | grep -o '"version":"[^"]*"' | sed 's/"version":"\([^"]*\)"/\1/')
 	URL=$(echo "$DATA" | grep -o '"url":"[^"]*"' | sed 's/"url":"\([^"]*\)"/\1/')
 
-	echo $VERSION
-	echo $COMMIT
-	echo $URL
-
 	DIST_DIR=${HOME}/.vscode/cli/serve-web/${COMMIT}
 	if test -d "${DIST_DIR}"; then
 		msg "distination dir: ${DIST_DIR} exists!"

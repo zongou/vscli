@@ -16,6 +16,14 @@ Run a web version of vscode.
   "$@"
 ```
 
+## Download
+
+Download server.
+
+```sh
+./code download
+```
+
 ## Patch
 
 To work better on Android.  
