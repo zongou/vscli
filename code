@@ -299,12 +299,12 @@ ${BLD}${UND}Usage:${RST} ${BLD}${PROGRAM} patch${RST} [INSTALLATION_ROOT]\n"
 		sed -E -i "s/(<meta name=\"viewport\" )(content=.+)(>$)/\1content=\"width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, interactive-widget=${viewportInteractiveWidget}\"\3/" "${html}"
 		grep -E -o -q "<meta name=\"viewport\" content=\".+, interactive-widget=${viewportInteractiveWidget}\">$" "${html}"
 
-		commandPanelWidth=.76
-		msg "Patching: change command panel width to ${commandPanelWidth}"
-		## -	,t=Math.min(this.j.width*.62,Fje.f);
-		## +	,t=Math.min(this.j.width*.80,Fje.f);
-		sed -E -i "s^(Math.min\\(this\\.[^ ]\\.width\*)(\\.[0-9]+)^\\1${commandPanelWidth}^" "${js}"
-		grep -E -o -q '(Math\.min\(this\.[^ ]\.width\*)(\.[0-9]+)' "${js}"
+		# commandPanelWidth=.76
+		# msg "Patching: change command panel width to ${commandPanelWidth}"
+		# ## -	,t=Math.min(this.j.width*.62,Fje.f);
+		# ## +	,t=Math.min(this.j.width*.80,Fje.f);
+		# sed -E -i "s^(Math.min\\(this\\.[^ ]\\.width\*)(\\.[0-9]+)^\\1${commandPanelWidth}^" "${js}"
+		# grep -E -o -q '(Math\.min\(this\.[^ ]\.width\*)(\.[0-9]+)' "${js}"
 
 		msg "Patching: fix context menu for android"
 		## ,npt=!!(Tw&&Tw.indexOf("Android")>=0),
