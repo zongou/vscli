@@ -407,8 +407,8 @@ code_cli() {
 download_server() {
 	OBJECT=server-alpine-${VSCODE_ARCH}-web
 	VERSION=$(download_to_stdout https://update.code.visualstudio.com/api/releases/stable | sed 's/^\[//' | sed 's/\].*//' | awk -F',' '{print $1}' | tr -d '"')
-	# DATA=$(download_to_stdout https://update.code.visualstudio.com/api/versions/${VERSION}/${OBJECT}/stable)
-	# COMMIT=$(echo "${DATA}" | grep -o '"version":"[^"]*"' | sed 's/"version":"\([^"]*\)"/\1/')
+	DATA=$(download_to_stdout https://update.code.visualstudio.com/api/versions/${VERSION}/${OBJECT}/stable)
+	COMMIT=$(echo "${DATA}" | grep -o '"version":"[^"]*"' | sed 's/"version":"\([^"]*\)"/\1/')
 	# URL=$(echo "${DATA}" | grep -o '"url":"[^"]*"' | sed 's/"url":"\([^"]*\)"/\1/')
 
 	URL=https://update.code.visualstudio.com/${VERSION}/${OBJECT}/stable
