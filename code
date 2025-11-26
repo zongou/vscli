@@ -190,14 +190,6 @@ verify_patch="@@ -99,8 +99,7 @@
 prepare_vscode_cli() {
 	if [ ! -f "${CODE}" ]; then
 		mkdir -p "${DATA_DIR}"
-		case $(uname -m) in
-		aarch64 | arm64) VSCODE_ARCH=arm64 ;;
-		x86_64) VSCODE_ARCH=x64 ;;
-		*)
-			msg "Unsupported architecture"
-			exit 1
-			;;
-		esac
 
 		msg "Downloading VS Code Cli, quality=${QUALITY}"
 		URL=http://update.code.visualstudio.com/latest/cli-alpine-${VSCODE_ARCH}/${QUALITY}
@@ -412,7 +404,43 @@ code_cli() {
 	fi
 }
 
+download_server() {
+	OBJECT=server-alpine-${VSCODE_ARCH}-web
+	VERSION=$(curl -Ss https://update.code.visualstudio.com/api/releases/stable | sed 's/^\[//' | sed 's/\].*//' | awk -F',' '{print $1}' | tr -d '"')
+	DATA=$(curl -Ss https://update.code.visualstudio.com/api/versions/${VERSION}/${OBJECT}/stable)
+	COMMIT=$(echo "$DATA" | grep -o '"version":"[^"]*"' | sed 's/"version":"\([^"]*\)"/\1/')
+	URL=$(echo "$DATA" | grep -o '"url":"[^"]*"' | sed 's/"url":"\([^"]*\)"/\1/')
+
+	echo $VERSION
+	echo $COMMIT
+	echo $URL
+
+	DIST_DIR=${HOME}/.vscode/cli/serve-web/${COMMIT}
+	if test -d "${DIST_DIR}"; then
+		msg "distination dir: ${DIST_DIR} exists!"
+		exit 1
+	fi
+
+	mkdir -p "${DIST_DIR}"
+
+	msg "Downloading ${OBJECT} ${VERSION}"
+	curl -Ss $URL | gzip -d | tar -C "${DIST_DIR}" -xv --strip-components=1
+
+	if test -d "${DIST_DIR}.staging"; then
+		rm -rf "${DIST_DIR}.staging"
+	fi
+}
+
 main() {
+	case $(uname -m) in
+	aarch64 | arm64) VSCODE_ARCH=arm64 ;;
+	x86_64) VSCODE_ARCH=x64 ;;
+	*)
+		msg "Unsupported architecture"
+		exit 1
+		;;
+	esac
+
 	if ! ([ $# -ge 2 ] && ([ "$1" = "patch" ] || [ "$1" = "revert" ])); then
 		BLD='' UND='' RST='' && if [ -t 1 ]; then BLD='\033[1m' UND='\033[4m' RST='\033[0m'; fi
 		case "${PROGRAM}" in
@@ -429,8 +457,12 @@ main() {
 
 			# shellcheck disable=SC2059
 			printf "\n${BLD}${UND}CUSTOM COMMANDS:${RST}\n\
+      ${BLD}download${RST}                       Download server\n\
       ${BLD}patch${RST}                          Patch vscode to work better on Android\n\
       ${BLD}revert${RST}                         Revert patch\n"
+			;;
+		download)
+			download_server
 			;;
 		serve-web)
 			code_cli "$@"
