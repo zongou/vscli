@@ -406,8 +406,8 @@ code_cli() {
 
 download_server() {
 	OBJECT=server-alpine-${VSCODE_ARCH}-web
-	VERSION=$(curl -Ss https://update.code.visualstudio.com/api/releases/stable | sed 's/^\[//' | sed 's/\].*//' | awk -F',' '{print $1}' | tr -d '"')
-	DATA=$(curl -Ss https://update.code.visualstudio.com/api/versions/${VERSION}/${OBJECT}/stable)
+	VERSION=$(download_to_stdout https://update.code.visualstudio.com/api/releases/stable | sed 's/^\[//' | sed 's/\].*//' | awk -F',' '{print $1}' | tr -d '"')
+	DATA=$(download_to_stdout https://update.code.visualstudio.com/api/versions/${VERSION}/${OBJECT}/stable)
 	COMMIT=$(echo "$DATA" | grep -o '"version":"[^"]*"' | sed 's/"version":"\([^"]*\)"/\1/')
 	URL=$(echo "$DATA" | grep -o '"url":"[^"]*"' | sed 's/"url":"\([^"]*\)"/\1/')
 
@@ -436,7 +436,7 @@ download_server() {
 
 	trap "on_error" EXIT
 	trap "on_interrupt" HUP INT TERM
-	curl -Ss $URL | gzip -d | tar -C "${DIST_DIR}" -x --strip-components=1
+	download_to_stdout $URL | gzip -d | tar -C "${DIST_DIR}" -x --strip-components=1
 
 	## Reset trap for HUP/INT/TERM.
 	trap - EXIT
