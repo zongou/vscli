@@ -2,7 +2,6 @@
 set -eu
 
 DATA_DIR=${HOME}/.config/vscli
-PROGRAM=$(basename "$0")
 
 msg() { printf '%s: %s\n' "${PROGRAM}" "$*" >&2; }
 
@@ -191,8 +190,8 @@ prepare_vscode_cli() {
 	if [ ! -f "${CODE}" ]; then
 		mkdir -p "${DATA_DIR}"
 
-		msg "Downloading VS Code Cli, quality=${QUALITY}"
-		URL=http://update.code.visualstudio.com/latest/cli-alpine-${VSCODE_ARCH}/${QUALITY}
+		msg "Downloading VS Code Cli, VSCODE_BUILD=${VSCODE_BUILD}"
+		URL=http://update.code.visualstudio.com/latest/cli-alpine-${VSCODE_ARCH}/${VSCODE_BUILD}
 		download_to_stdout "${URL}" | gzip -d | tar -x -C "${DATA_DIR}"
 	fi
 }
@@ -406,12 +405,11 @@ code_cli() {
 
 download_server() {
 	OBJECT=server-alpine-${VSCODE_ARCH}-web
-	VERSION=$(download_to_stdout https://update.code.visualstudio.com/api/releases/stable | sed 's/^\[//' | sed 's/\].*//' | awk -F',' '{print $1}' | tr -d '"')
-	DATA=$(download_to_stdout https://update.code.visualstudio.com/api/versions/${VERSION}/${OBJECT}/stable)
+	DATA=$(download_to_stdout https://update.code.visualstudio.com/api/latest/${OBJECT}/${VSCODE_BUILD})
 	COMMIT=$(echo "${DATA}" | grep -o '"version":"[^"]*"' | sed 's/"version":"\([^"]*\)"/\1/')
-	# URL=$(echo "${DATA}" | grep -o '"url":"[^"]*"' | sed 's/"url":"\([^"]*\)"/\1/')
+	VERSION=$(echo "${DATA}" | grep -o '"name":"[^"]*"' | sed 's/"name":"\([^"]*\)"/\1/')
 
-	URL=https://update.code.visualstudio.com/${VERSION}/${OBJECT}/stable
+	URL=https://update.code.visualstudio.com/commit:${COMMIT}/${OBJECT}/${VSCODE_BUILD}
 
 	DIST_DIR="${HOME}/.vscode/cli/serve-web/${COMMIT}"
 	if test -d "${DIST_DIR}"; then
@@ -449,6 +447,8 @@ download_server() {
 }
 
 main() {
+	PROGRAM=$(basename "$0")
+
 	case $(uname -m) in
 	aarch64 | arm64) VSCODE_ARCH=arm64 ;;
 	x86_64) VSCODE_ARCH=x64 ;;
@@ -458,12 +458,13 @@ main() {
 		;;
 	esac
 
+	case "${PROGRAM}" in
+	*-insiders) VSCODE_BUILD=insider CODE=${DATA_DIR}/code-insiders ;;
+	*) VSCODE_BUILD=stable CODE=${DATA_DIR}/code ;;
+	esac
+
 	if ! ([ $# -ge 2 ] && ([ "$1" = "patch" ] || [ "$1" = "revert" ])); then
 		BLD='' UND='' RST='' && if [ -t 1 ]; then BLD='\033[1m' UND='\033[4m' RST='\033[0m'; fi
-		case "${PROGRAM}" in
-		*-insiders) QUALITY=insider CODE=${DATA_DIR}/code-insiders ;;
-		*) QUALITY=stable CODE=${DATA_DIR}/code ;;
-		esac
 		prepare_vscode_cli
 	fi
 
