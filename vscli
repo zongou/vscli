@@ -338,9 +338,9 @@ ${BLD}${UND}Usage:${RST} ${BLD}${PROGRAM} patch${RST} [INSTALLATION_ROOT]\n"
 
     msg "patch: change default configuration keyboard.dispatch to 'keyCode' for android"
     ## -	,properties:{"keyboard.dispatch":{scope:1,type:"string",enum:["code","keyCode"],default:"code",
-    sed -E -i "s^(,properties:\{\"keyboard\.dispatch\":\{scope:1,type:\"string\",enum:\[\"code\",\"keyCode\"\],default:)(\"code\",)^\1${isAndroid}?\"keycode\":\2^" "${js}"
+    sed -E -i "s^(,properties:\{\"keyboard\.dispatch\":\{scope:1,type:\"string\",enum:\[\"code\",\"keyCode\"\],default:)(\"code\",)^\1${isAndroid}?\"keyCode\":\2^" "${js}"
     ## +	,properties:{"keyboard.dispatch":{scope:1,type:"string",enum:["code","keyCode"],default:npt?"keyCode":"code",
-    grep -E -o -q ',properties:{\"keyboard\.dispatch\":{scope:1,type:\"string\",enum:\[\"code\",\"keyCode\"\],default:\w{1,3}\?\"keycode\":\"code\",' "${js}"
+    grep -E -o -q ',properties:{\"keyboard\.dispatch\":{scope:1,type:\"string\",enum:\[\"code\",\"keyCode\"\],default:\w{1,3}\?\"keyCode\":\"code\",' "${js}"
 
     # msg "patch: fix actionWidget for android"
     # ## -	;c.classList.add("context-view-pointerBlock"),o.add(K(c,ne.POINTER_MOVE,()=>c.remove())),o.add(K(c,ne.MOUSE_DOWN,()=>c.remove()));
